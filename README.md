@@ -1,10 +1,10 @@
 # 농지공간포털 지도서비스 지도 다운로더
 [농지공간포털](https://njy.mafra.go.kr/map/mapMain.do)의 지도 구간을 다운로드 받기 위한 프로그램입니다.
-브라우저 확장 스크립트 `script.js`와 병합기 `merge.js`로 이루어져 있습니다.
+브라우저 확장 스크립트 `script.js`와 병합 프로그램 `merge.js`로 이루어져 있습니다.
 
-## script.js
+## 확장 스크립트 (script.js)
 
-### Install (script.js)
+### Install 
 1. [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)를 브라우저에 설치합니다.\
 2. [농지공간포털 지도 다운로더](https://greasyfork.org/ko/scripts/479601-%EB%86%8D%EC%A7%80%EA%B3%B5%EA%B0%84%ED%8F%AC%ED%84%B8-%EC%A7%80%EB%8F%84-%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%8D%94) 스크립트를 설치합니다.
 
@@ -24,8 +24,8 @@ window.startCenter = [268228.91755557084, 441646.6275384163];
 // git.map.getView().getCenter()를 입력하여 현재 위치값을 확인할 수 있습니다.
 ```
 
-## merge.js
-### Install (merge.js)
+## 병합 프로그램 (merge.js)
+### Install
 1. [nodejs](https://nodejs.org/)를 설치합니다.
 2. `npm install`
 3. 프로젝트 경로에 `images` 폴더를 만든 뒤, 브라우저에서 다운로드 받은 모든 이미지들을 넣습니다.
