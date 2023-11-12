@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         Openlayers map downloader
-// @namespace    http://tampermonkey.net/
-// @version      0.1
-// @description  try to take over the world!
-// @author       You
+// @name         농지공간포털 지도 다운로더
+// @version      0.2
+// @description  농지공간포털의 지도를 다운로드 하는 스크립트입니다. 빨간색 버튼을 클릭하면 다운로드가 시작됩니다.
+// @author       refracta
 // @match        https://njy.mafra.go.kr/map/mapMain.do
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=go.kr
 // @grant        none
+// @license MIT
 // ==/UserScript==
 
 (async function () {
@@ -155,6 +155,8 @@
         let resolution = view.getResolution();
         let screenMeters = size.map(s => s * resolution);
         let startCenter = window.startCenter || view.getCenter();
+        view.setCenter(startCenter);
+        await waitCanvas();
         let range2D = window.range2D || [1000, 200];
         range2D[1] = -range2D[1];
         let airMode = window.airMode !== undefined ? window.airMode : true;
