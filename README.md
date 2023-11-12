@@ -5,7 +5,7 @@
 ## 확장 스크립트 (script.js)
 
 ### Install 
-1. [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)를 브라우저에 설치합니다.\
+1. [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo)를 브라우저에 설치합니다.
 2. [농지공간포털 지도 다운로더](https://greasyfork.org/ko/scripts/479601-%EB%86%8D%EC%A7%80%EA%B3%B5%EA%B0%84%ED%8F%AC%ED%84%B8-%EC%A7%80%EB%8F%84-%EB%8B%A4%EC%9A%B4%EB%A1%9C%EB%8D%94) 스크립트를 설치합니다.
 
 ### How to use?
