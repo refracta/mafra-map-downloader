@@ -22,6 +22,8 @@ window.range2D = [10000, 10000];
 window.startCenter = [268228.91755557084, 441646.6275384163];
 // 캡처 시작점을 임의로 지정합니다. (기본 값: 현재 지도 위치)
 // git.map.getView().getCenter()를 입력하여 현재 위치값을 확인할 수 있습니다.
+window.zoomLevel = 11;
+// 줌 레벨을 설정합니다.
 ```
 
 ## 병합 프로그램 (merge.js)

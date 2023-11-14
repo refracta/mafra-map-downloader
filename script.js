@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         농지공간포털 지도 다운로더
-// @version      0.2
+// @version      0.3
 // @description  농지공간포털의 지도를 다운로드 하는 스크립트입니다. 빨간색 버튼을 클릭하면 다운로드가 시작됩니다.
 // @author       refracta
 // @match        https://njy.mafra.go.kr/map/mapMain.do
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=go.kr
 // @grant        none
 // @license MIT
+// @namespace https://greasyfork.org/users/467840
 // ==/UserScript==
 
 (async function () {
@@ -23,8 +24,6 @@
     }
 
     let map = await waitFor(_ => git.map);
-    map.getView().setZoom(13);
-    map.getView().setCenter([268228.91755557084, 441646.6275384163]);
 
     function sleep(ms) {
         return new Promise(r => setTimeout(r, ms));
@@ -78,30 +77,21 @@
         git.layer.getLayerById('AIR_21', map).setVisible(visible);
     }
 
-    function arePixelArraysEqual(arr1, arr2, missRate = 0) {
+    function arePixelArraysEqual(arr1, arr2, targetRate = 0.0009) {
         if (arr1.length !== arr2.length) {
             return false;
         }
-        if (missRate === 0) {
-            for (let i = 0; i < arr1.length; i++) {
-                for (let j = 0; j < 4; j++) {
-                    if (arr1[i][j] !== arr2[i][j]) {
-                        return false;
-                    }
+        let count = 0;
+        for (let i = 0; i < arr1.length; i++) {
+            for (let j = 0; j < 4; j++) {
+                if (arr1[i][j] !== arr2[i][j]) {
+                    count++;
                 }
             }
-            return true;
-        } else {
-            let count = 0;
-            for (let i = 0; i < arr1.length; i++) {
-                for (let j = 0; j < 4; j++) {
-                    if (arr1[i][j] !== arr2[i][j]) {
-                        count++;
-                    }
-                }
-            }
-            return count / (arr1.length * 4) < missRate;
         }
+        let missRate = count / (arr1.length * 4);
+        console.log(`missRate: ${missRate * 100}%`);
+        return missRate <= targetRate;
     }
 
     function saveCanvas(name = 'canvas-image.png') {
@@ -147,7 +137,7 @@
         notificationBar.textContent = ' ※ ' + text;
     }
 
-    document.querySelector('#autoDownload').addEventListener('click', async e => {
+    async function run(saveData) {
         await waitCanvas();
         let view = map.getView();
         let size = map.getSize();
@@ -155,6 +145,8 @@
         let resolution = view.getResolution();
         let screenMeters = size.map(s => s * resolution);
         let startCenter = window.startCenter || view.getCenter();
+        let zoomLevel = window.zoomLevel || view.getZoom();
+        view.setZoom(zoomLevel);
         view.setCenter(startCenter);
         await waitCanvas();
         let range2D = window.range2D || [1000, 200];
@@ -176,6 +168,7 @@
 
         async function movePrecisely(direction, previousOutline) {
             console.log(`movePrecisely(${direction})`);
+            let originalCenter = view.getCenter();
             if (direction === 'up') {
                 await moveRelative(0, screenMeters[1] + resolution);
             } else if (direction === 'down') {
@@ -200,8 +193,11 @@
                     }
                     counter = delta + 1;
                 }
-                console.log(`center=${center} direction=${direction}, delta=${delta}, deltaMap=${JSON.stringify(deltaMap)}`);
-
+                if (delta > 10) {
+                    localStorage.forceRun = true;
+                    location.reload();
+                }
+                console.log(`center=${view.getCenter()} direction=${direction}, delta=${delta}, deltaMap=${JSON.stringify(deltaMap)}`);
                 if (direction === 'up') {
                     await move(center[0], center[1] - resolution * delta);
                 } else if (direction === 'down') {
@@ -239,23 +235,42 @@
             }
         }
 
-        console.log(`Size: ${size}`);
-        console.log(`Resolution: ${resolution}`);
+        if (Object.keys(saveData).length !== 0) {
+            console.log('Continue from saveData');
+            startCenter = saveData.startCenter;
+            range2D = saveData.range2D;
+            airMode = saveData.airMode;
+            endCenter = saveData.endCenter;
+            zoomLevel = saveData.zoomLevel;
+        }
+
+        console.log(`size: ${size}`);
+        console.log(`resolution: ${resolution}`);
         console.log(`screenMeters: ${screenMeters}`);
         console.log(`startCenter: ${startCenter}`);
         console.log(`endCenter: ${endCenter}`);
 
         let outline = getOutline();
-        let newCenter = startCenter;
-        for (let y = startCenter[1], yCount = 0;
+        let newCenter = saveData.newCenter || startCenter;
+        for (let y = saveData.y || startCenter[1], yCount = saveData.yCount || 0;
              y > endCenter[1];
              y = newCenter[1], yCount++) {
-            let yCenter = newCenter;
-            let yOutline = outline;
-            for (let x = startCenter[0], xCount = 0;
+            let yCenter = saveData.yCenter || newCenter;
+            for (let x = saveData.x || startCenter[0], xCount = saveData.xCount || 0;
                  x < endCenter[0];
                  x = newCenter[0], xCount++) {
+                if (Object.keys(saveData).length !== 0) {
+                    saveData = {};
+                }
                 updateText(`CurrentProcess: ${Math.floor(x - startCenter[0])}/${Math.floor(endCenter[0] - startCenter[0])}, ${Math.floor(startCenter[1] - y)}/${Math.floor(startCenter[1] - endCenter[1])}`)
+                console.log(`lastCenter: ${view.getCenter()}`);
+                let currentCenter = view.getCenter();
+                if (!(x === currentCenter[0] && y === currentCenter[1])) {
+                    view.setZoom(zoomLevel);
+                    view.setCenter([x, y]);
+                    await waitCanvas();
+                    outline = getOutline();
+                }
                 // Core logic
                 if (airMode) {
                     setAirMode(true);
@@ -267,6 +282,24 @@
                     await waitCanvas();
                 }
 
+                if (window.currentSaveData) {
+                    localStorage.isRunning = true;
+                    localStorage.saveData = JSON.stringify(window.currentSaveData);
+                }
+                window.currentSaveData = {
+                    x: x,
+                    y: y,
+                    xCount: xCount,
+                    yCount: yCount,
+                    newCenter,
+                    startCenter,
+                    range2D,
+                    airMode,
+                    endCenter,
+                    yCenter,
+                    zoomLevel: view.getZoom()
+                };
+
                 // Next X
                 await movePrecisely('right', outline);
                 newCenter = view.getCenter();
@@ -274,9 +307,43 @@
             }
             // Next Y
             await move(yCenter[0], yCenter[1]);
-            await movePrecisely('down', yOutline);
+            await movePrecisely('down', getOutline());
             newCenter = view.getCenter();
             outline = getOutline();
         }
+        localStorage.isRunning = false;
+        localStorage.forceRun = false;
+    }
+
+    let c1, c2;
+    map.on('singleclick', function (e) {
+        c1 = e.coordinate;
+        console.log(`startCenter: ${c1}, endCenter: ${c2}`);
+        if (c1 && c2) {
+            console.log(`range2D: ${c1.map((e, i) => Math.abs(e - c2[i]))}`);
+        }
     });
+    map.getViewport().addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        c2 = map.getEventCoordinate(e);
+        console.log(`startCenter: ${c1}, endCenter: ${c2}`);
+        if (c1 && c2) {
+            console.log(`range2D: ${c1.map((e, i) => Math.abs(e - c2[i]))}`);
+        }
+    });
+
+    if (localStorage.isRunning === 'true') {
+        if (localStorage.forceRun === 'true' || confirm('Continue?')) {
+            localStorage.forceRun = false;
+            await run(JSON.parse(localStorage.saveData));
+        } else {
+            localStorage.isRunning = false;
+            localStorage.forceRun = false;
+        }
+    }
+
+    document.querySelector('#autoDownload').addEventListener('click', _ => run({}));
+    // window.zoomLevel = 11;
+    // window.startCenter = [185386.5028661047, 395956.31206765346];
+    // window.range2D = [28285.49491734401, 31374.144608640752];
 })();
